@@ -5,6 +5,10 @@ on:
     branches: ['**']
   pull_request:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   server:
     runs-on: ubuntu-latest
@@ -57,3 +61,51 @@ jobs:
       - name: Build client
         working-directory: client
         run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: client/dist
+
+  deploy-server:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [server, client]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy server to EC2 over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/collab-code
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build server mongo redis
+            docker image prune -f
+
+  deploy-client:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [server, client]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: client-dist
+          path: client-dist
+
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Sync to S3
+        run: aws s3 sync client-dist s3://${{ secrets.S3_BUCKET_NAME }} --delete
+
+      - name: Invalidate CloudFront (if configured)
+        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"

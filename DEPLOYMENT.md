@@ -85,7 +85,7 @@ This is what lets GitHub Actions push to S3 without ever holding a long-lived AW
 
 ## 6. Verify the pipeline
 
-Push any commit to `main` → the `CI` workflow runs tests → on success, `Deploy` runs automatically: SSHes into EC2 to rebuild the server, and syncs the freshly-built client to S3. Check the Actions tab on GitHub for both runs.
+Push any commit to `main` → the `CI` workflow (`.github/workflows/ci.yml`) runs the server and client test jobs first, then — only on `main`, only if both pass — its `deploy-server` and `deploy-client` jobs run automatically: SSHes into EC2 to rebuild the server, and syncs the already-built client artifact to S3. Everything lives in that one workflow file (test and deploy jobs chained via `needs:`), rather than two separate workflow files — a `workflow_run`-triggered second workflow turned out to be unreliable in practice (never actually fired across several real attempts) and a single pipeline with job dependencies is the standard, more robust pattern anyway. Check the Actions tab on GitHub for the run.
 
 ## 7. Confirm the admin dashboard works in production
 
