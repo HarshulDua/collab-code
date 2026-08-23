@@ -107,5 +107,11 @@ jobs:
         run: aws s3 sync client-dist s3://${{ secrets.S3_BUCKET_NAME }} --delete
 
       - name: Invalidate CloudFront (if configured)
-        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
-        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+        env:
+          CF_DIST_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          if [ -n "$CF_DIST_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id "$CF_DIST_ID" --paths "/*"
+          else
+            echo "No CLOUDFRONT_DISTRIBUTION_ID secret set, skipping invalidation"
+          fi
