@@ -1,0 +1,49 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: collab-mongo-prod
+    volumes:
+      - mongo-data-prod:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: collab-redis-prod
+    volumes:
+      - redis-data-prod:/data
+
+  server:
+    build: ./server
+    container_name: collab-server-prod
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGO_URI: mongodb://mongo:27017/collab
+      REDIS_URL: redis://redis:6379
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:8080}
+      JWT_SECRET: ${JWT_SECRET}
+      GIT_TOKEN_ENCRYPTION_KEY: ${GIT_TOKEN_ENCRYPTION_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      SANDBOX_IMAGE: collab-python-sandbox:latest
+      EXEC_HOST_TMP_DIR: ${EXEC_HOST_TMP_DIR:-/tmp/collab-exec-shared}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${EXEC_HOST_TMP_DIR:-/tmp/collab-exec-shared}:${EXEC_HOST_TMP_DIR:-/tmp/collab-exec-shared}
+      - git-rooms-prod:/app/.git-rooms
+
+  client:
+    build: ./client
+    container_name: collab-client-prod
+    depends_on:
+      - server
+    ports:
+      - "8080:80"
+
+volumes:
+  mongo-data-prod:
+  redis-data-prod:
+  git-rooms-prod:

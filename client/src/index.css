@@ -1,0 +1,572 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #14161a;
+  color: #e6e6e6;
+}
+
+button {
+  cursor: pointer;
+  background: #2b6cb0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+input {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #3a3f47;
+  background: #1c1f24;
+  color: #e6e6e6;
+}
+
+.error-text {
+  color: #f56565;
+}
+
+.page-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 12px;
+}
+
+/* Auth pages */
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 320px;
+  background: #1c1f24;
+  padding: 24px;
+  border-radius: 8px;
+}
+
+/* Rooms list */
+.rooms-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.rooms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.inline-form {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.inline-form input {
+  flex: 1;
+}
+.room-list {
+  list-style: none;
+  padding: 0;
+}
+.room-list-item {
+  width: 100%;
+  text-align: left;
+  background: #1c1f24;
+  margin-bottom: 6px;
+}
+
+/* Room workspace */
+.room-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.room-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #1c1f24;
+  border-bottom: 1px solid #2a2e35;
+}
+.room-status {
+  color: #68d391;
+  font-size: 13px;
+}
+.room-branch {
+  font-size: 12px;
+  color: #999;
+}
+.room-branch strong {
+  color: #e6e6e6;
+}
+.room-id-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #999;
+}
+.room-id-badge code {
+  background: #0d0f12;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #ccc;
+}
+.room-id-badge button {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.room-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+.room-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.room-sidebar {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #2a2e35;
+}
+
+/* File explorer */
+.file-explorer {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #2a2e35;
+  background: #17191d;
+  overflow-y: auto;
+}
+.file-explorer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #888;
+  border-bottom: 1px solid #2a2e35;
+}
+.file-explorer-header button {
+  padding: 0 8px;
+  line-height: 1.4;
+}
+.file-explorer-error {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.file-tree {
+  padding: 6px 0;
+  font-size: 13px;
+}
+.file-tree-folder-label {
+  padding: 4px 10px;
+  color: #999;
+}
+.file-tree-indent {
+  padding-left: 10px;
+}
+.file-tree-file {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.file-tree-file:hover {
+  background: #22262c;
+}
+.file-tree-file-active {
+  background: #2b6cb0;
+}
+.file-tree-delete {
+  background: transparent;
+  padding: 0 4px;
+  font-size: 14px;
+  line-height: 1;
+  color: #aaa;
+  visibility: hidden;
+}
+.file-tree-file:hover .file-tree-delete {
+  visibility: visible;
+}
+
+/* Execution */
+.execution-panel {
+  border-top: 1px solid #2a2e35;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.execution-toolbar {
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+}
+.execution-stdin-toggle {
+  background: #2a2e35;
+}
+.execution-stdin {
+  margin: 0 8px 8px;
+  padding: 8px;
+  background: #0d0f12;
+  border: 1px solid #2a2e35;
+  border-radius: 4px;
+  color: #e6e6e6;
+  font-family: monospace;
+  font-size: 13px;
+  min-height: 60px;
+  resize: vertical;
+}
+.execution-output {
+  flex: 1;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  background: #0d0f12;
+  white-space: pre-wrap;
+  font-size: 13px;
+}
+.execution-stderr {
+  color: #f56565;
+}
+.execution-badge {
+  display: inline-block;
+  margin-top: 6px;
+  background: #975a16;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.execution-meta {
+  margin-top: 8px;
+  color: #888;
+  font-size: 12px;
+}
+
+/* Chat */
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+.chat-message {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.chat-author {
+  font-weight: 600;
+  margin-right: 6px;
+}
+.chat-input {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid #2a2e35;
+}
+.chat-input input {
+  flex: 1;
+}
+
+/* Video */
+.video-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 8px;
+  background: #0d0f12;
+}
+.video-tile {
+  width: 100%;
+  border-radius: 4px;
+  background: #000;
+}
+.video-status {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #888;
+}
+
+/* Sidebar tabs (Chat / Git) */
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid #2a2e35;
+}
+.sidebar-tabs button {
+  flex: 1;
+  background: transparent;
+  border-radius: 0;
+  padding: 8px;
+  color: #999;
+}
+.sidebar-tab-active {
+  color: #fff !important;
+  border-bottom: 2px solid #2b6cb0;
+}
+
+/* Git panel */
+.git-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+  font-size: 13px;
+}
+.git-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.git-tabs button {
+  background: #1c1f24;
+  padding: 4px 10px;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+.git-tab-active {
+  background: #2b6cb0 !important;
+}
+.git-status {
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.git-status-info {
+  background: #22422f;
+  color: #9ae6b4;
+}
+.git-status-error {
+  background: #442222;
+  color: #f56565;
+}
+.git-commit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.git-current-branch {
+  color: #999;
+  font-size: 12px;
+}
+.git-empty {
+  color: #777;
+}
+.git-history ul,
+.git-branches ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.git-history li {
+  border-bottom: 1px solid #2a2e35;
+  padding: 8px 0;
+}
+.git-commit-message {
+  font-weight: 500;
+}
+.git-commit-meta {
+  color: #888;
+  font-size: 11px;
+  margin: 2px 0 4px;
+}
+.git-commit-actions button,
+.git-branch-actions button {
+  padding: 2px 8px;
+  font-size: 11px;
+  margin-right: 6px;
+}
+.git-diff {
+  margin-top: 8px;
+  background: #0d0f12;
+  padding: 8px;
+  border-radius: 4px;
+  max-height: 240px;
+  overflow: auto;
+}
+.git-diff pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 11px;
+}
+.git-branches li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #2a2e35;
+}
+.git-branch-current {
+  color: #68d391;
+  font-weight: 600;
+}
+.git-remote {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.git-remote form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.git-remote-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Admin dashboard */
+.admin-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.admin-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.admin-stat-card {
+  background: #1c1f24;
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.admin-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+.admin-stat-label {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+.admin-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.admin-rooms {
+  flex: 2;
+  min-width: 0;
+}
+.admin-logs {
+  flex: 1;
+  min-width: 0;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.admin-table th {
+  text-align: left;
+  color: #888;
+  font-weight: 500;
+  padding: 6px 8px;
+  border-bottom: 1px solid #2a2e35;
+}
+.admin-table td {
+  padding: 8px;
+  border-bottom: 1px solid #22262c;
+}
+.admin-room-row {
+  cursor: pointer;
+}
+.admin-room-row:hover {
+  background: #1c1f24;
+}
+.admin-room-detail-row td {
+  background: #17191d;
+  padding: 12px;
+}
+.admin-branch-detail {
+  margin-bottom: 10px;
+}
+.admin-branch-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.admin-branch-detail ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #ccc;
+}
+.admin-empty {
+  color: #777;
+  margin: 0;
+}
+.admin-log-list {
+  max-height: 480px;
+  overflow-y: auto;
+  background: #0d0f12;
+  border-radius: 6px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 12px;
+}
+.admin-log-line {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid #1c1f24;
+}
+.admin-log-time {
+  color: #666;
+  flex-shrink: 0;
+}
+.admin-log-level {
+  flex-shrink: 0;
+  text-transform: uppercase;
+  color: #999;
+}
+.admin-log-level-error .admin-log-level,
+.admin-log-level-fatal .admin-log-level {
+  color: #f56565;
+}
+.admin-log-level-warn .admin-log-level {
+  color: #ecc94b;
+}
