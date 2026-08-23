@@ -18,7 +18,7 @@ services:
       - mongo
       - redis
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -36,12 +36,15 @@ services:
       - git-rooms-prod:/app/.git-rooms
 
   client:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
     container_name: collab-client-prod
     depends_on:
       - server
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
 
 volumes:
   mongo-data-prod:
