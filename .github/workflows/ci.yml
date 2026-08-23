@@ -28,6 +28,12 @@ jobs:
         working-directory: server
         run: npm ci
 
+      - name: Cache mongodb-memory-server binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('server/package-lock.json') }}
+
       - name: Build execution sandbox image
         run: docker build -t collab-python-sandbox:latest -f docker/python-sandbox.Dockerfile docker/
 
