@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 
-const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+function buildIceServers() {
+  const servers = [{ urls: 'stun:stun.l.google.com:19302' }];
+  const turnUrl = import.meta.env.VITE_TURN_URL;
+  if (turnUrl) {
+    servers.push({
+      urls: turnUrl,
+      username: import.meta.env.VITE_TURN_USERNAME,
+      credential: import.meta.env.VITE_TURN_CREDENTIAL,
+    });
+  }
+  return servers;
+}
+
+const ICE_SERVERS = buildIceServers();
 
 export function VideoCallPanel({ socket, roomId }) {
   const [remoteStreams, setRemoteStreams] = useState({});

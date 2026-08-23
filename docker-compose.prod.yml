@@ -40,6 +40,9 @@ services:
       context: ./client
       args:
         VITE_API_URL: ${VITE_API_URL:-}
+        VITE_TURN_URL: ${VITE_TURN_URL:-}
+        VITE_TURN_USERNAME: ${VITE_TURN_USERNAME:-}
+        VITE_TURN_CREDENTIAL: ${VITE_TURN_CREDENTIAL:-}
     container_name: collab-client-prod
     depends_on:
       - server
