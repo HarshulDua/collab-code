@@ -20,8 +20,12 @@ const collabSync = require('../src/sockets/collabSync');
 let mongod;
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
-  await mongoose.connect(mongod.getUri());
+  if (process.env.MONGO_URI) {
+    await mongoose.connect(process.env.MONGO_URI);
+  } else {
+    mongod = await MongoMemoryServer.create();
+    await mongoose.connect(mongod.getUri());
+  }
 }, 60000);
 
 afterEach(async () => {
