@@ -42,8 +42,10 @@ const env = {
 function assertProductionReady() {
   if (env.nodeEnv !== 'production') return;
   const problems = [];
-  if (env.jwtSecret === INSECURE_DEFAULTS.jwtSecret) problems.push('JWT_SECRET is unset or using the dev default');
-  if (env.gitTokenEncryptionKey === INSECURE_DEFAULTS.gitTokenEncryptionKey) {
+  if (!env.jwtSecret || env.jwtSecret === INSECURE_DEFAULTS.jwtSecret) {
+    problems.push('JWT_SECRET is unset or using the dev default');
+  }
+  if (!env.gitTokenEncryptionKey || env.gitTokenEncryptionKey === INSECURE_DEFAULTS.gitTokenEncryptionKey) {
     problems.push('GIT_TOKEN_ENCRYPTION_KEY is unset or using the dev default');
   }
   if (!env.adminEmail) problems.push('ADMIN_EMAIL is unset');
