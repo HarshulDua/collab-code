@@ -19,9 +19,10 @@ async function run(files, entryPath, opts = {}) {
   const maxOutputChars = opts.maxOutputChars ?? env.execMaxOutputChars;
 
   const hostDir = await fs.mkdtemp(path.join(env.execHostTmpDir || os.tmpdir(), 'collab-exec-'));
+  await fs.chmod(hostDir, 0o755);
   for (const [relPath, content] of Object.entries(files)) {
     const hostFile = path.join(hostDir, relPath);
-    await fs.mkdir(path.dirname(hostFile), { recursive: true });
+    await fs.mkdir(path.dirname(hostFile), { recursive: true, mode: 0o755 });
     await fs.writeFile(hostFile, content, { mode: 0o444 });
   }
 
