@@ -15,8 +15,8 @@ beforeAll(async () => {
   try {
     await docker.ping();
     await docker.buildImage(
-      { context: path.join(__dirname, '..', '..', 'docker'), src: ['python-sandbox.Dockerfile'] },
-      { t: env.sandboxImage, dockerfile: 'python-sandbox.Dockerfile' }
+      { context: path.join(__dirname, '..', '..', 'docker'), src: ['sandbox.Dockerfile'] },
+      { t: env.sandboxImage, dockerfile: 'sandbox.Dockerfile' }
     ).then(
       (stream) =>
         new Promise((resolve, reject) => {

@@ -27,7 +27,7 @@ const env = {
   gitRoomsDir: process.env.GIT_ROOMS_DIR || require('path').join(__dirname, '..', '..', '.git-rooms'),
   gitTokenEncryptionKey: process.env.GIT_TOKEN_ENCRYPTION_KEY || INSECURE_DEFAULTS.gitTokenEncryptionKey,
 
-  sandboxImage: process.env.SANDBOX_IMAGE || 'collab-python-sandbox:latest',
+  sandboxImage: process.env.SANDBOX_IMAGE || 'collab-sandbox:latest',
   execHostTmpDir: process.env.EXEC_HOST_TMP_DIR || null,
   execTimeoutMs: parseInt(process.env.EXEC_TIMEOUT_MS || '8000', 10),
   execMemoryBytes: parseInt(process.env.EXEC_MEMORY_BYTES || String(128 * 1024 * 1024), 10),

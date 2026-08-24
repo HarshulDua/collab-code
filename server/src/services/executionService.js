@@ -11,7 +11,19 @@ const MAX_FILE_COUNT = 40;
 const MAX_STDIN_LENGTH = 20_000;
 const semaphore = new Semaphore(env.execMaxConcurrent);
 
-function normalizeFiles({ code, files, entryPath }) {
+const DEFAULT_ENTRY_BY_LANGUAGE = {
+  python: 'main.py',
+  javascript: 'main.js',
+  typescript: 'main.ts',
+  c: 'main.c',
+  cpp: 'main.cpp',
+  go: 'main.go',
+  rust: 'main.rs',
+  java: 'Main.java',
+  csharp: 'Main.cs',
+};
+
+function normalizeFiles({ language, code, files, entryPath }) {
   if (files && typeof files === 'object' && !Array.isArray(files)) {
     const paths = Object.keys(files);
     if (paths.length === 0) throw new ApiError(400, 'files must contain at least one file');
@@ -40,12 +52,13 @@ function normalizeFiles({ code, files, entryPath }) {
   if (code.length > MAX_TOTAL_CODE_LENGTH) {
     throw new ApiError(413, `code exceeds max length of ${MAX_TOTAL_CODE_LENGTH} characters`);
   }
-  const resolvedEntry = entryPath && isSafeRelativePath(entryPath) ? entryPath : 'main.py';
+  const defaultEntry = DEFAULT_ENTRY_BY_LANGUAGE[language] || 'main.py';
+  const resolvedEntry = entryPath && isSafeRelativePath(entryPath) ? entryPath : defaultEntry;
   return { files: { [resolvedEntry]: code }, entryPath: resolvedEntry };
 }
 
 async function executeCode({ language, code, files, entryPath, stdin, userId, roomId }) {
-  const normalized = normalizeFiles({ code, files, entryPath });
+  const normalized = normalizeFiles({ language, code, files, entryPath });
 
   if (stdin != null && (typeof stdin !== 'string' || stdin.length > MAX_STDIN_LENGTH)) {
     throw new ApiError(413, `stdin exceeds max length of ${MAX_STDIN_LENGTH} characters`);

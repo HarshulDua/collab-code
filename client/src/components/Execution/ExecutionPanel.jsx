@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { languageForPath, isRunnable } from '../../lib/languages';
 
 export function ExecutionPanel({ socket, roomId, branch, filesMap, activeFile }) {
   const [running, setRunning] = useState(false);
@@ -34,14 +35,23 @@ export function ExecutionPanel({ socket, roomId, branch, filesMap, activeFile })
     };
   }, [socket]);
 
+  const language = languageForPath(activeFile);
+  const runnable = isRunnable(activeFile);
+
   function run() {
+    if (!runnable) {
+      setError(
+        `No runner for "${activeFile}" — supported extensions: .py, .js/.mjs/.cjs, .ts, .c, .cpp, .go, .rs, .java, .cs`
+      );
+      return;
+    }
     const files = {};
     filesMap.forEach((ytext, path) => {
       files[path] = ytext.toString();
     });
     socket.emit(
       'execution:run',
-      { roomId, branch, language: 'python', files, entryPath: activeFile, stdin: stdin || undefined },
+      { roomId, branch, language, files, entryPath: activeFile, stdin: stdin || undefined },
       (ack) => {
         if (ack?.error) setError(ack.error);
       }
@@ -51,7 +61,7 @@ export function ExecutionPanel({ socket, roomId, branch, filesMap, activeFile })
   return (
     <div className="execution-panel">
       <div className="execution-toolbar">
-        <button onClick={run} disabled={running}>
+        <button onClick={run} disabled={running || !runnable}>
           {running ? `Running (${runBy})…` : `Run ${activeFile}`}
         </button>
         <button className="execution-stdin-toggle" onClick={() => setShowStdin((v) => !v)}>

@@ -1,6 +1,6 @@
 # Real-Time Code Collaboration
 
-A room-based collaborative workspace: a shared, real-time multi-file Python project (Yjs CRDT, real folders, stdin-capable code execution in Docker), chat, peer-to-peer video/audio (WebRTC), and a full git integration per room (commit history, branching, merging, and pushing/pulling a real remote) — plus a stress-tested, horizontally-scalable backend behind it.
+A room-based collaborative workspace: a shared, real-time multi-file project (Yjs CRDT, real folders, stdin-capable code execution in Docker across Python, JavaScript, C, and C++), chat, peer-to-peer video/audio (WebRTC), and a full git integration per room (commit history, branching, merging, and pushing/pulling a real remote) — plus a stress-tested, horizontally-scalable backend behind it.
 
 See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for the full design write-up (why every decision was made, what broke and how it was fixed, and real measured stress-test results), and **[load-tests/README.md](./load-tests/README.md)** for the load/stress testing suite specifically.
 
@@ -8,7 +8,7 @@ See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for the full design write-up (why e
 
 ```
 docker-compose up -d                                                          # Mongo + Redis
-docker build -t collab-python-sandbox:latest -f docker/python-sandbox.Dockerfile docker/
+docker build -t collab-sandbox:latest -f docker/sandbox.Dockerfile docker/
 cp server/.env.example server/.env
 cd server && npm install && npm start                                         # http://localhost:4000
 ```

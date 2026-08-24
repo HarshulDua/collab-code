@@ -39,6 +39,16 @@ export function deleteFile(filesMap, filePath) {
   filesMap.delete(filePath);
 }
 
+export function renameFile(filesMap, oldPath, newPath) {
+  if (!filesMap.has(oldPath)) throw new Error(`No such file: ${oldPath}`);
+  if (!isValidFilePath(newPath)) throw new Error('Invalid file path — use letters, numbers, "_-./" only, no ".."');
+  if (newPath === oldPath) return;
+  if (filesMap.has(newPath)) throw new Error('A file with that path already exists');
+  const content = filesMap.get(oldPath).toString();
+  filesMap.set(newPath, new Y.Text(content));
+  filesMap.delete(oldPath);
+}
+
 export function buildTree(paths) {
   const root = { folders: {}, files: [] };
   for (const filePath of paths) {

@@ -193,15 +193,19 @@ async function merge({ roomId, from, into, authorName, authorEmail }) {
   });
 }
 
-async function configureRemote(roomId, url, token) {
-  const git = await ensureRepo(roomId);
+async function ensureOriginRemote(git, authedUrl) {
   const remotes = await git.getRemotes();
-  const authedUrl = token ? url.replace('https://', `https://x-access-token:${token}@`) : url;
   if (remotes.some((r) => r.name === 'origin')) {
     await git.remote(['set-url', 'origin', authedUrl]);
   } else {
     await git.addRemote('origin', authedUrl);
   }
+}
+
+async function configureRemote(roomId, url, token) {
+  const git = await ensureRepo(roomId);
+  const authedUrl = token ? url.replace('https://', `https://x-access-token:${token}@`) : url;
+  await ensureOriginRemote(git, authedUrl);
 }
 
 function loadAuthedRemoteUrl(room) {
@@ -215,7 +219,7 @@ async function push(roomId, room, branch) {
     const git = await ensureRepo(roomId);
     const authedUrl = loadAuthedRemoteUrl(room);
     if (!authedUrl) throw new Error('No remote configured for this room');
-    await git.remote(['set-url', 'origin', authedUrl]);
+    await ensureOriginRemote(git, authedUrl);
     await git.push('origin', branch, ['--set-upstream']);
   });
 }
@@ -225,7 +229,7 @@ async function pull(roomId, room, branch) {
     const git = await ensureRepo(roomId);
     const authedUrl = loadAuthedRemoteUrl(room);
     if (!authedUrl) throw new Error('No remote configured for this room');
-    await git.remote(['set-url', 'origin', authedUrl]);
+    await ensureOriginRemote(git, authedUrl);
     await checkoutBranch(git, branch);
     await git.pull('origin', branch);
     return readWorkingTree(getRepoDir(roomId));

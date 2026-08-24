@@ -27,6 +27,7 @@ function registerExecutionHandlers(io, socket) {
       ack?.({ ok: true });
     } catch (err) {
       metrics.increment('executionsFailed');
+      if (!err.statusCode) console.error('execution:run failed', err);
       const message = err.statusCode ? err.message : 'Execution failed';
       io.to(collabRoom(roomId, branch)).emit('execution:error', { by: socket.user.name, error: message });
       ack?.({ error: message });

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useFileList } from '../../hooks/useFileList';
-import { buildTree, createFile, deleteFile } from '../../lib/fileTree';
+import { buildTree, createFile, deleteFile, renameFile } from '../../lib/fileTree';
 
 export function FileExplorer({ filesMap, activeFile, onSelectFile }) {
   const paths = useFileList(filesMap);
@@ -34,6 +34,19 @@ export function FileExplorer({ filesMap, activeFile, onSelectFile }) {
     }
   }
 
+  function handleRename(filePath, e) {
+    e.stopPropagation();
+    const newPath = window.prompt('Rename to:', filePath);
+    if (!newPath || newPath.trim() === filePath) return;
+    try {
+      renameFile(filesMap, filePath, newPath.trim());
+      setError(null);
+      if (filePath === activeFile) onSelectFile(newPath.trim());
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div className="file-explorer">
       <div className="file-explorer-header">
@@ -44,13 +57,20 @@ export function FileExplorer({ filesMap, activeFile, onSelectFile }) {
       </div>
       {error && <div className="error-text file-explorer-error">{error}</div>}
       <div className="file-tree">
-        <TreeNode node={tree} pathPrefix="" activeFile={activeFile} onSelectFile={onSelectFile} onDelete={handleDelete} />
+        <TreeNode
+          node={tree}
+          pathPrefix=""
+          activeFile={activeFile}
+          onSelectFile={onSelectFile}
+          onDelete={handleDelete}
+          onRename={handleRename}
+        />
       </div>
     </div>
   );
 }
 
-function TreeNode({ node, pathPrefix, activeFile, onSelectFile, onDelete }) {
+function TreeNode({ node, pathPrefix, activeFile, onSelectFile, onDelete, onRename }) {
   return (
     <>
       {Object.entries(node.folders)
@@ -65,6 +85,7 @@ function TreeNode({ node, pathPrefix, activeFile, onSelectFile, onDelete }) {
                 activeFile={activeFile}
                 onSelectFile={onSelectFile}
                 onDelete={onDelete}
+                onRename={onRename}
               />
             </div>
           </div>
@@ -79,6 +100,9 @@ function TreeNode({ node, pathPrefix, activeFile, onSelectFile, onDelete }) {
             onClick={() => onSelectFile(filePath)}
           >
             <span>{filePath.split('/').pop()}</span>
+            <button className="file-tree-rename" onClick={(e) => onRename(filePath, e)} title="Rename file">
+              ✎
+            </button>
             <button className="file-tree-delete" onClick={(e) => onDelete(filePath, e)} title="Delete file">
               ×
             </button>

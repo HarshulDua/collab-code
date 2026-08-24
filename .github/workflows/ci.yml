@@ -6,7 +6,6 @@ on:
   pull_request:
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
@@ -33,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Build execution sandbox image
-        run: docker build -t collab-python-sandbox:latest -f docker/python-sandbox.Dockerfile docker/
+        run: docker build -t collab-sandbox:latest -f docker/sandbox.Dockerfile docker/
 
       - name: Run server test suite
         working-directory: server
@@ -67,13 +66,17 @@ jobs:
           name: client-dist
           path: client/dist
 
-  deploy-server:
+  # The live deployment serves the client from the `client` container in
+  # docker-compose.prod.yml, reverse-proxied by Caddy alongside the server —
+  # not S3/CloudFront (see DEPLOYMENT.md's "Deployment topology" note). Both
+  # rebuild together over the same SSH session so they stay in sync.
+  deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [server, client]
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Deploy server to EC2 over SSH
+      - name: Deploy server + client to EC2 over SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -83,35 +86,6 @@ jobs:
             cd /opt/collab-code
             git fetch origin main
             git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build server mongo redis
+            docker build -t collab-sandbox:latest -f docker/sandbox.Dockerfile docker/
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build server client mongo redis
             docker image prune -f
-
-  deploy-client:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [server, client]
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: client-dist
-          path: client-dist
-
-      - name: Configure AWS credentials (OIDC, no stored keys)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Sync to S3
-        run: aws s3 sync client-dist s3://${{ secrets.S3_BUCKET_NAME }} --delete
-
-      - name: Invalidate CloudFront (if configured)
-        env:
-          CF_DIST_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
-        run: |
-          if [ -n "$CF_DIST_ID" ]; then
-            aws cloudfront create-invalidation --distribution-id "$CF_DIST_ID" --paths "/*"
-          else
-            echo "No CLOUDFRONT_DISTRIBUTION_ID secret set, skipping invalidation"
-          fi

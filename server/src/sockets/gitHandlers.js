@@ -137,6 +137,7 @@ function registerGitHandlers(io, socket) {
     try {
       if (!roomId || !(await isRoomMember(roomId, socket.user.id))) return ack?.({ error: 'Not authorized for this room' });
       if (!/^https:\/\/\S+$/.test(url || '')) return ack?.({ error: 'Remote URL must be an https:// URL' });
+      await gitService.configureRemote(roomId, url, token);
       await Room.findByIdAndUpdate(roomId, {
         gitRemote: { url, encryptedToken: token ? encryptToken(token) : null },
       });

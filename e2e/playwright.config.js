@@ -29,8 +29,8 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 30000,
       env: {
-        MONGO_URI: 'mongodb://localhost:27017/collab-e2e',
-        REDIS_URL: 'redis://localhost:6379/3',
+        MONGO_URI: process.env.E2E_MONGO_URI || 'mongodb://localhost:27017/collab-e2e',
+        REDIS_URL: process.env.E2E_REDIS_URL || 'redis://localhost:6379/3',
         ADMIN_EMAIL: 'e2e-admin@example.com',
       },
     },

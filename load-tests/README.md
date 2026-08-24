@@ -22,8 +22,8 @@ npm install
 ```
 
 You need: Mongo + Redis running (`docker-compose up -d` from the repo
-root), the sandbox image built (`docker build -t collab-python-sandbox:latest
--f docker/python-sandbox.Dockerfile docker/`), and `server/.env` created
+root), the sandbox image built (`docker build -t collab-sandbox:latest
+-f docker/sandbox.Dockerfile docker/`), and `server/.env` created
 from `server/.env.example`.
 
 ## 1. `node node/execution-saturation.js` (or `npm run saturation`)

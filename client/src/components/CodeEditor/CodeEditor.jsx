@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { MonacoBinding } from 'y-monaco';
 import { watchRemoteCursorStyles } from '../../lib/remoteCursorStyles';
+import { monacoLanguageForPath } from '../../lib/languages';
 
 export function CodeEditor({ filesMap, activeFile, awareness }) {
   const editorRef = useRef(null);
@@ -19,7 +20,7 @@ export function CodeEditor({ filesMap, activeFile, awareness }) {
 
     let model = modelsRef.current.get(filePath);
     if (!model) {
-      model = monaco.editor.createModel('', 'python');
+      model = monaco.editor.createModel('', monacoLanguageForPath(filePath));
       modelsRef.current.set(filePath, model);
     }
     editor.setModel(model);

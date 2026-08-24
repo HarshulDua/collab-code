@@ -4,24 +4,36 @@ import { apiClient } from '../../lib/apiClient';
 export function ChatPanel({ socket, roomId, token }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
+  const [ready, setReady] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
-
-    apiClient
-      .getMessages(token, roomId)
-      .then(({ messages: history }) => {
-        if (!cancelled) setMessages(history);
-      })
-      .catch(() => {});
-
-    socket.emit('chat:join', { roomId }, () => {});
+    setReady(false);
 
     function onMessage(message) {
       setMessages((prev) => [...prev, message]);
     }
-    socket.on('chat:message', onMessage);
+
+    // Wait for the server to actually add this socket to the room before
+    // fetching history or trusting the live listener — otherwise a message
+    // from another member can be broadcast (and permanently lost, socket.io
+    // never replays a missed room event) in the gap between mount and the
+    // join being processed server-side.
+    socket.emit('chat:join', { roomId }, () => {
+      if (cancelled) return;
+      socket.on('chat:message', onMessage);
+      apiClient
+        .getMessages(token, roomId)
+        .then(({ messages: history }) => {
+          if (!cancelled) setMessages(history);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setReady(true);
+        });
+    });
+
     return () => {
       cancelled = true;
       socket.off('chat:message', onMessage);
@@ -34,7 +46,7 @@ export function ChatPanel({ socket, roomId, token }) {
 
   function send(e) {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!ready || !text.trim()) return;
     socket.emit('chat:send', { roomId, text }, () => {});
     setText('');
   }
@@ -51,8 +63,15 @@ export function ChatPanel({ socket, roomId, token }) {
         <div ref={bottomRef} />
       </div>
       <form className="chat-input" onSubmit={send}>
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Message the room…" />
-        <button type="submit">Send</button>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={ready ? 'Message the room…' : 'Joining chat…'}
+          disabled={!ready}
+        />
+        <button type="submit" disabled={!ready}>
+          Send
+        </button>
       </form>
     </div>
   );

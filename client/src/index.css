@@ -205,7 +205,8 @@ input {
 .file-tree-file-active {
   background: #2b6cb0;
 }
-.file-tree-delete {
+.file-tree-delete,
+.file-tree-rename {
   background: transparent;
   padding: 0 4px;
   font-size: 14px;
@@ -213,7 +214,8 @@ input {
   color: #aaa;
   visibility: hidden;
 }
-.file-tree-file:hover .file-tree-delete {
+.file-tree-file:hover .file-tree-delete,
+.file-tree-file:hover .file-tree-rename {
   visibility: visible;
 }
 
