@@ -9,11 +9,19 @@ export function CodeEditor({ filesMap, activeFile, awareness }) {
   const monacoRef = useRef(null);
   const modelsRef = useRef(new Map());
   const bindingRef = useRef(null);
+  const boundTextRef = useRef(null);
 
   function bindToFile(filePath) {
     const editor = editorRef.current;
     const monaco = monacoRef.current;
     if (!editor || !monaco || !filePath) return;
+
+    const ytext = filesMap.get(filePath);
+    if (!ytext) return;
+    // Already bound to this exact Y.Text instance — rebinding would destroy
+    // and recreate the binding on every unrelated map change (and drop the
+    // user's cursor), so this is the common no-op path.
+    if (bindingRef.current && boundTextRef.current === ytext) return;
 
     bindingRef.current?.destroy();
     bindingRef.current = null;
@@ -25,8 +33,7 @@ export function CodeEditor({ filesMap, activeFile, awareness }) {
     }
     editor.setModel(model);
 
-    const ytext = filesMap.get(filePath);
-    if (!ytext) return;
+    boundTextRef.current = ytext;
     bindingRef.current = new MonacoBinding(ytext, model, new Set([editor]), awareness);
   }
 
@@ -40,6 +47,25 @@ export function CodeEditor({ filesMap, activeFile, awareness }) {
     bindToFile(activeFile);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFile, filesMap]);
+
+  // A Y.Map value can be *replaced* by a concurrent write from another
+  // client (two clients creating the same path at once, a git restore
+  // swapping the tree, …). When that happens the editor is still bound to
+  // the old, now-orphaned Y.Text: edits typed into it merge into nothing
+  // and no remote edits ever arrive — the doc silently stops being
+  // collaborative for that user. Watching the map lets the editor re-bind
+  // to whichever instance actually won.
+  useEffect(() => {
+    const onMapChange = (event) => {
+      if (!activeFile) return;
+      if (!event.keysChanged || event.keysChanged.has(activeFile)) {
+        if (filesMap.get(activeFile) !== boundTextRef.current) bindToFile(activeFile);
+      }
+    };
+    filesMap.observe(onMapChange);
+    return () => filesMap.unobserve(onMapChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filesMap, activeFile]);
 
   useEffect(() => watchRemoteCursorStyles(awareness), [awareness]);
 

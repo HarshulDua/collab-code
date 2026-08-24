@@ -6,17 +6,32 @@ import { BranchWorkspace } from '../components/BranchWorkspace/BranchWorkspace';
 import { ChatPanel } from '../components/Chat/ChatPanel';
 import { VideoCallPanel } from '../components/VideoCall/VideoCallPanel';
 import { GitPanel } from '../components/Git/GitPanel';
+import { ResizeHandle } from '../components/ResizeHandle/ResizeHandle';
+import { useResizableWidth } from '../hooks/useResizableWidth';
 
 export function RoomPage() {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const { token, user } = useAuthStore();
+  const { token, user, logout } = useAuthStore();
 
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
   const [currentBranch, setCurrentBranch] = useState('main');
   const [sidebarTab, setSidebarTab] = useState('chat');
   const socketRef = useRef(null);
+  const [sidebarWidth, onSidebarResize] = useResizableWidth({
+    storageKey: 'collab.sidebarWidth',
+    defaultWidth: 320,
+    min: 260,
+    max: 600,
+    side: 'left',
+  });
+
+  function signOut() {
+    socketRef.current?.close();
+    logout();
+    navigate('/login');
+  }
 
   useEffect(() => {
     if (!token) {
@@ -60,12 +75,16 @@ export function RoomPage() {
           branch: <strong>{currentBranch}</strong>
         </span>
         <span className="room-user">{user?.name}</span>
+        <button className="room-signout" onClick={signOut}>
+          Sign out
+        </button>
       </header>
 
       {connected && socketRef.current && (
         <div className="room-body">
           <BranchWorkspace key={currentBranch} socket={socketRef.current} roomId={roomId} branch={currentBranch} user={user} />
-          <aside className="room-sidebar">
+          <ResizeHandle onMouseDown={onSidebarResize} label="Resize sidebar" />
+          <aside className="room-sidebar" style={{ width: sidebarWidth }}>
             <VideoCallPanel socket={socketRef.current} roomId={roomId} />
             <div className="sidebar-tabs">
               <button className={sidebarTab === 'chat' ? 'sidebar-tab-active' : ''} onClick={() => setSidebarTab('chat')}>

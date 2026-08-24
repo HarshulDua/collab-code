@@ -6,7 +6,7 @@ import { useRoomStore } from '../store/roomStore';
 export function RoomsPage() {
   const navigate = useNavigate();
   const { token, user, logout } = useAuthStore();
-  const { rooms, loading, error, fetchRooms, createRoom, joinRoom } = useRoomStore();
+  const { rooms, loading, error, fetchRooms, createRoom, joinRoom, deleteRoom } = useRoomStore();
   const [name, setName] = useState('');
   const [joinId, setJoinId] = useState('');
 
@@ -31,6 +31,12 @@ export function RoomsPage() {
     if (!joinId.trim()) return;
     const room = await joinRoom(token, joinId.trim());
     if (room) navigate(`/rooms/${room.id}`);
+  }
+
+  async function onDelete(room, e) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${room.name}"? This cannot be undone.`)) return;
+    await deleteRoom(token, room.id);
   }
 
   return (
@@ -61,10 +67,15 @@ export function RoomsPage() {
       ) : (
         <ul className="room-list">
           {rooms.map((room) => (
-            <li key={room.id}>
+            <li key={room.id} className="room-list-row">
               <button className="room-list-item" onClick={() => navigate(`/rooms/${room.id}`)}>
                 {room.name}
               </button>
+              {room.owner === user?.id && (
+                <button className="room-delete" title="Delete room" onClick={(e) => onDelete(room, e)}>
+                  Delete
+                </button>
+              )}
             </li>
           ))}
         </ul>

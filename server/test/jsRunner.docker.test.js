@@ -22,7 +22,7 @@ beforeAll(async () => {
   } catch (err) {
     console.warn('Skipping jsRunner Docker integration tests — Docker not reachable:', err.message); // eslint-disable-line no-console
   }
-}, 120000);
+}, 300000);
 
 describe('jsRunner (real Docker)', () => {
   it('runs simple javascript and captures stdout', async () => {

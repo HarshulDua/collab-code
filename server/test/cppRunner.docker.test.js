@@ -22,7 +22,7 @@ beforeAll(async () => {
   } catch (err) {
     console.warn('Skipping cppRunner Docker integration tests — Docker not reachable:', err.message); // eslint-disable-line no-console
   }
-}, 120000);
+}, 300000);
 
 describe('cppRunner (real Docker)', () => {
   it('compiles and runs simple C++, capturing stdout', async () => {

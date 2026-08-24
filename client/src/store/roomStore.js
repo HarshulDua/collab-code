@@ -38,4 +38,16 @@ export const useRoomStore = create((set, get) => ({
       return null;
     }
   },
+
+  async deleteRoom(token, roomId) {
+    set({ error: null });
+    try {
+      await apiClient.deleteRoom(token, roomId);
+      set({ rooms: get().rooms.filter((r) => r.id !== roomId) });
+      return true;
+    } catch (err) {
+      set({ error: err.message });
+      return false;
+    }
+  },
 }));

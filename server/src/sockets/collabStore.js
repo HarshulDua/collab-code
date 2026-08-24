@@ -8,6 +8,7 @@ const states = new Map();
 
 const SNAPSHOT_DEBOUNCE_MS = 4000;
 
+
 function stateKey(roomId, branch) {
   return `${roomId}::${branch}`;
 }
@@ -72,6 +73,7 @@ async function seedRoomState(roomId, branch, state) {
   }
 
   await collabSync.requestPeerState(key);
+
 }
 
 function scheduleSnapshot(roomId, branch) {
@@ -92,10 +94,24 @@ function scheduleSnapshot(roomId, branch) {
 function disposeIfEmpty(roomId, branch) {
   const key = stateKey(roomId, branch);
   const state = states.get(key);
-  if (state && state.clients.size === 0) {
-    if (state.snapshotTimer) clearTimeout(state.snapshotTimer);
-    state.doc.destroy();
-    states.delete(key);
+  if (!state || state.clients.size !== 0) return;
+
+  // A snapshot may still be pending inside the debounce window. Dropping the
+  // timer here would silently discard every edit made in the last few
+  // seconds before the last client left — so encode the final state now
+  // (synchronously, before the doc is destroyed) and persist it.
+  const hadPendingSnapshot = Boolean(state.snapshotTimer);
+  if (state.snapshotTimer) {
+    clearTimeout(state.snapshotTimer);
+    state.snapshotTimer = null;
+  }
+  const finalUpdate = hadPendingSnapshot ? Y.encodeStateAsUpdate(state.doc) : null;
+
+  state.doc.destroy();
+  states.delete(key);
+
+  if (finalUpdate) {
+    Room.findByIdAndUpdate(roomId, { [`ydocSnapshots.${branch}`]: Buffer.from(finalUpdate) }).catch(() => {});
   }
 }
 

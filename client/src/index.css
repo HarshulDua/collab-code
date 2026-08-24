@@ -89,7 +89,19 @@ input {
   width: 100%;
   text-align: left;
   background: #1c1f24;
+}
+.room-list-row {
+  display: flex;
+  gap: 6px;
   margin-bottom: 6px;
+}
+.room-delete {
+  flex-shrink: 0;
+  background: #3a1f22;
+  color: #f4a3a8;
+}
+.room-delete:hover {
+  background: #5a2a2e;
 }
 
 /* Room workspace */
@@ -147,9 +159,31 @@ input {
 }
 .room-sidebar {
   width: 320px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #2a2e35;
+}
+.room-signout {
+  margin-left: auto;
+}
+.resize-handle {
+  flex-shrink: 0;
+  width: 5px;
+  cursor: col-resize;
+  background: #2a2e35;
+  position: relative;
+}
+.resize-handle:hover,
+.resize-handle:active {
+  background: #4a90d9;
+}
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  right: -3px;
 }
 
 /* File explorer */
@@ -158,7 +192,6 @@ input {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #2a2e35;
   background: #17191d;
   overflow-y: auto;
 }
@@ -180,6 +213,59 @@ input {
   padding: 6px 10px;
   font-size: 12px;
 }
+.presence-list {
+  padding: 8px 10px;
+  border-bottom: 1px solid #2a2e35;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.presence-heading {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #777;
+}
+.presence-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #ccc;
+  overflow: hidden;
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+.presence-item-jumpable {
+  cursor: pointer;
+}
+.presence-item-jumpable:hover {
+  background: #22262c;
+}
+.presence-you {
+  color: #777;
+  font-weight: 400;
+}
+.presence-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.presence-name {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #e6e6e6;
+}
+.presence-file {
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.presence-file::before {
+  content: '→ ';
+}
 .file-tree {
   padding: 6px 0;
   font-size: 13px;
@@ -193,11 +279,27 @@ input {
 }
 .file-tree-file {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 4px;
   padding: 4px 10px;
   cursor: pointer;
   border-radius: 3px;
+}
+.file-tree-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-tree-editors {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.file-tree-editor-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
 .file-tree-file:hover {
   background: #22262c;

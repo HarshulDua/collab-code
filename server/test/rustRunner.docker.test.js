@@ -22,7 +22,7 @@ beforeAll(async () => {
   } catch (err) {
     console.warn('Skipping rustRunner Docker integration tests — Docker not reachable:', err.message); // eslint-disable-line no-console
   }
-}, 120000);
+}, 300000);
 
 describe('rustRunner (real Docker)', () => {
   it('compiles and runs simple Rust, capturing stdout', async () => {

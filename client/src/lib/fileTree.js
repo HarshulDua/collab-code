@@ -7,13 +7,18 @@ export function getFilesMap(doc) {
   return doc.getMap('files');
 }
 
+// The server seeds the default file authoritatively before sending any join
+// ack (see server/src/sockets/collabStore.js), so this is only a fallback for
+// a doc that somehow arrives empty. It deliberately does NOT overwrite an
+// existing entry: replacing a Y.Text that another client is already bound to
+// orphans their editor, and their edits then merge into nothing.
 export function ensureDefaultFile(filesMap) {
-  if (filesMap.size === 0) {
-    filesMap.set(DEFAULT_FILE, new Y.Text(DEFAULT_CONTENT));
-    return DEFAULT_FILE;
-  }
   const paths = listFilePaths(filesMap);
-  return paths.includes(DEFAULT_FILE) ? DEFAULT_FILE : paths[0];
+  if (paths.length > 0) {
+    return paths.includes(DEFAULT_FILE) ? DEFAULT_FILE : paths[0];
+  }
+  filesMap.set(DEFAULT_FILE, new Y.Text(DEFAULT_CONTENT));
+  return DEFAULT_FILE;
 }
 
 export function listFilePaths(filesMap) {

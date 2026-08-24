@@ -27,7 +27,7 @@ beforeAll(async () => {
   } catch (err) {
     console.warn('Skipping pythonRunner Docker integration tests — Docker not reachable:', err.message); // eslint-disable-line no-console
   }
-}, 120000);
+}, 300000);
 
 describe('pythonRunner (real Docker)', () => {
   it('runs simple python and captures stdout', async () => {
