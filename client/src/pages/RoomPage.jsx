@@ -6,6 +6,7 @@ import { BranchWorkspace } from '../components/BranchWorkspace/BranchWorkspace';
 import { ChatPanel } from '../components/Chat/ChatPanel';
 import { VideoCallPanel } from '../components/VideoCall/VideoCallPanel';
 import { GitPanel } from '../components/Git/GitPanel';
+import { TerminalPanel } from '../components/Terminal/TerminalPanel';
 import { ResizeHandle } from '../components/ResizeHandle/ResizeHandle';
 import { useResizableWidth } from '../hooks/useResizableWidth';
 
@@ -87,20 +88,30 @@ export function RoomPage() {
           <aside className="room-sidebar" style={{ width: sidebarWidth }}>
             <VideoCallPanel socket={socketRef.current} roomId={roomId} />
             <div className="sidebar-tabs">
-              <button className={sidebarTab === 'chat' ? 'sidebar-tab-active' : ''} onClick={() => setSidebarTab('chat')}>
-                Chat
-              </button>
-              <button className={sidebarTab === 'git' ? 'sidebar-tab-active' : ''} onClick={() => setSidebarTab('git')}>
-                Git
-              </button>
+              {['chat', 'git', 'terminal'].map((t) => (
+                <button
+                  key={t}
+                  className={sidebarTab === t ? 'sidebar-tab-active' : ''}
+                  onClick={() => setSidebarTab(t)}
+                >
+                  {t === 'chat' ? 'Chat' : t === 'git' ? 'Git' : 'Terminal'}
+                </button>
+              ))}
             </div>
-            {sidebarTab === 'chat' ? (
-              <ChatPanel socket={socketRef.current} roomId={roomId} token={token} />
-            ) : (
+            {sidebarTab === 'chat' && <ChatPanel socket={socketRef.current} roomId={roomId} token={token} />}
+            {sidebarTab === 'git' && (
               <GitPanel
                 socket={socketRef.current}
                 roomId={roomId}
                 currentBranch={currentBranch}
+                onSwitchBranch={setCurrentBranch}
+              />
+            )}
+            {sidebarTab === 'terminal' && (
+              <TerminalPanel
+                socket={socketRef.current}
+                roomId={roomId}
+                branch={currentBranch}
                 onSwitchBranch={setCurrentBranch}
               />
             )}

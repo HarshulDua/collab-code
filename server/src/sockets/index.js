@@ -8,6 +8,7 @@ const { registerChatHandlers } = require('./chatHandlers');
 const { registerExecutionHandlers } = require('./executionHandlers');
 const { registerWebrtcHandlers } = require('./webrtcHandlers');
 const { registerGitHandlers } = require('./gitHandlers');
+const { registerTerminalHandlers } = require('./terminalHandlers');
 const metrics = require('../services/metrics');
 
 function attachSocketAuth(io) {
@@ -43,6 +44,7 @@ function createSocketServer(httpServer, { useRedisAdapter = true } = {}) {
     registerExecutionHandlers(io, socket);
     registerWebrtcHandlers(io, socket);
     registerGitHandlers(io, socket);
+    registerTerminalHandlers(io, socket);
   });
 
   return io;

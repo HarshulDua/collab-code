@@ -1,6 +1,6 @@
 # Real-Time Code Collaboration
 
-A room-based collaborative workspace: a shared, real-time multi-file project (Yjs CRDT, real folders, stdin-capable code execution in Docker across Python, JavaScript, C, and C++), chat, peer-to-peer video/audio (WebRTC), and a full git integration per room (commit history, branching, merging, and pushing/pulling a real remote) — plus a stress-tested, horizontally-scalable backend behind it.
+A room-based collaborative workspace: a shared, real-time multi-file project (Yjs CRDT, real folders, stdin-capable code execution in Docker across nine languages — Python, JavaScript, TypeScript, C, C++, Go, Rust, Java and C#), live presence showing who is editing which file, an in-room terminal for file, run and git commands, chat, peer-to-peer video/audio (WebRTC), and a full git integration per room (commit history, branching, merging, and pushing/pulling a real remote) — plus a stress-tested, horizontally-scalable backend behind it.
 
 See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for the full design write-up (why every decision was made, what broke and how it was fixed, and real measured stress-test results), and **[load-tests/README.md](./load-tests/README.md)** for the load/stress testing suite specifically.
 
@@ -20,6 +20,18 @@ cd client && npm install && npm run dev                                       # 
 ```
 
 Open two browser tabs, register two different accounts, create a room in one and join it by ID in the other.
+
+## The in-room terminal
+
+The **Terminal** tab in a room's sidebar is a whitelisted command interpreter, not a shell — every command maps onto a service that already has its own safety model (see [ARCHITECTURE.md §9A](./ARCHITECTURE.md)). Type `help` for the full list.
+
+```
+ls  cd  pwd  cat  touch  mkdir  rm [-r]  mv  cp  echo [> >>]
+run <file>   python/node/java/go run/rustc/gcc/g++/tsc <file>
+git status | log | branch | checkout [-b] | commit -m "…" | diff | merge
+```
+
+Files created there are ordinary collaborative edits, so they appear in everyone's file explorer immediately.
 
 ## Testing
 

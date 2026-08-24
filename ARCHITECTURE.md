@@ -410,6 +410,40 @@ client/src/
 
 ---
 
+## 9A. The terminal — a whitelisted interpreter, deliberately not a shell
+
+`server/src/services/terminalService.js` gives each room a command line covering file management, code execution, and git. The single most important design decision is what it *isn't*.
+
+### 9A.1 Why not a real shell
+
+The obvious implementation is a PTY: spawn `bash` in the room's working directory and stream it over the socket. That is exactly the wrong thing to build here, and not for vague "security hygiene" reasons — for one specific, concrete one. The server container mounts `/var/run/docker.sock` so it can create sandbox containers (§15.4). A shell inside that container is one `docker run -v /:/host` away from the host filesystem, as root. Every guarantee in §7 — the dropped capabilities, the read-only rootfs, the disabled network, the memory and PID caps — protects the *sandbox* container; none of it protects the *server* container, which is precisely where a naive PTY would run. Handing a user a shell there would not weaken the sandbox model, it would step around it entirely.
+
+So the terminal parses each line into a structured intent and dispatches it to a service that already has its own safety model. There is no passthrough case: a command not on the list returns `127` and a pointer to `help`, the same as a shell reporting an unknown binary.
+
+| Command group | Dispatched to | Existing protection it inherits |
+|---|---|---|
+| `ls` `cd` `pwd` `cat` `touch` `mkdir` `rm` `mv` `cp` `echo` | the room's Yjs document | `isSafeRelativePath` charset validation (§7.8); every write goes through `replaceFiles`, so it is a normal collaborative edit |
+| `run` `python` `node` `go run` `java` `gcc` … | `executionService` | the full container hardening table of §7.2 — identical to the Run button |
+| `git status` `log` `branch` `checkout` `commit` `diff` `merge` | `gitService` | per-room repo locking (§10.9), the same code path the Git panel uses |
+
+### 9A.2 Design consequences worth naming
+
+**File commands are collaborative edits, not filesystem writes.** `mkdir src && touch src/app.py` in one user's terminal appears in every other user's file explorer immediately, because the mutation is applied to the shared document and broadcast on the same `collab:update` channel a keystroke uses. The terminal is not a second, parallel view of the project — it is another editor of the same document.
+
+**There are no directories to create.** The file tree is a flat `Y.Map<path, Y.Text>` where folders are implied by `/` in a path (§7.8) — the same model git itself uses, and the same reason git cannot track an empty directory. `mkdir` therefore writes a `.gitkeep` placeholder, which is the convention git users already reach for, rather than inventing a directory entity that only the terminal would understand.
+
+**There is no staging area, so `git add` is a teaching moment rather than an error.** Commits snapshot the whole live tree (§10.2), so `git add` has nothing to do. It returns an explanation of why it isn't needed instead of either failing cryptically or silently pretending to work — a small thing, but the difference between a user learning the model and a user assuming the terminal is broken.
+
+**`git checkout` asks rather than acts.** Branch switching is per-user by design (§10.4) — the server has no concept of "the room's current branch" to change. The command therefore returns a `switchBranch` instruction and the client remounts its own workspace onto it, leaving everyone else exactly where they were.
+
+**`cd ..` cannot escape.** Path resolution normalizes against the project root by popping segments off a stack, so `..` past the root pops an empty stack and yields the root. Every resolved path is then re-validated against the same conservative charset the execution sandbox uses, which also makes shell-metacharacter injection impossible by construction — relevant because `entryPath` still reaches a `sh -c` string inside the sandbox (§7.8).
+
+### 9A.3 Testing
+
+53 unit tests cover the interpreter directly (`terminalService.test.js`) with the git and execution services mocked, including the cases that matter most: `cd ../../..` staying at the root, `touch "evil;rm -rf /.py"` being rejected on the charset, `rm` refusing to empty the project, and every git verb's success and failure path. Five Playwright specs then drive the real terminal in a browser against the real backend — a file created in the terminal appearing in the file explorer without a refresh, a commit made in the terminal showing up in the Git panel's history, `git checkout -b` moving the whole room view onto the new branch, and a file created by one user reaching a second user's editor live.
+
+---
+
 ## 10. Version control: git integration
 
 A genuinely separate layer from the live collaborative doc, added after the initial build. The Yjs doc (§6) is the always-flowing, per-keystroke editing surface; git is a deliberately-invoked checkpoint layer a user opts into via Commit/Branch/Merge — the two stay in sync only at those explicit moments, not continuously, and that's a feature, not a gap: nobody wants every keystroke creating a commit.
@@ -463,6 +497,27 @@ Worth naming honestly: verifying the full commit → branch → edit → switch 
 
 A git working directory has exactly one `HEAD` — but §10.4 means different users can be actively committing to *different* branches of the same room at the same moment, and there's only one on-disk checkout per room (`GIT_ROOMS_DIR/<roomId>`) to do it in. `withRepoLock(roomId, fn)` (`gitService.js`) is what reconciles those two facts: a per-room FIFO promise chain — the same "store the tail promise, chain the next call onto it" shape as `initLocks` (§10.3), generalized to run for the room's entire lifetime rather than just its first initialization. Every operation that needs a specific branch checked out (`commit`, `merge`, `createBranch`, `push`, `pull`) runs inside it, so two such operations for the same room can never interleave on the shared checkout — a commit to `"main"` and a concurrent commit to `"feature"` are serialized (one waits a beat for the other), never corrupted. Read-only operations that resolve an explicit ref (`log`, `show`, `getCommitTree`, `listBranches`) deliberately **skip** the lock — `git ls-tree <ref>`/`git show <ref>:<path>` read directly out of git's object database and never touch the working directory or `HEAD` at all, so a client "opening" a branch (§6.4's cold-seed path) never has to wait behind someone else's commit on an unrelated branch. This is also exactly why `getOrCreateRoomState`'s git-tree fallback (§6.4) works correctly regardless of which branch happens to be checked out at that instant: `ls-tree`/`show` don't care.
 
+### 10.10 End-to-end verification against the live deployment
+
+The git integration has the most moving parts of any subsystem here — an on-disk repository, a per-room lock, a live CRDT document, and a UI that has to stay in step with all three — so it was exercised as a whole against the deployed site rather than only in unit tests. `e2e/scripts/prod-git-verify.mjs` drives two real browser sessions through twenty assertions and is worth keeping as a regression harness:
+
+| Behaviour | What it confirms |
+|---|---|
+| Commit, then re-commit unchanged | A real hash comes back; the second attempt reports "nothing to commit" rather than creating an empty commit |
+| History ordering and content | Newest-first, both commits retained, messages and short hashes intact |
+| Diff | A genuine patch, not a placeholder |
+| Restore an older commit | Live document content reverts for everyone on that branch |
+| Branch create, then work on it | Creating switches you onto it; commits land on the new branch |
+| Branch isolation | `main` is untouched by work committed on `feature-x` |
+| Merge | Feature work arrives in `main`, reported without conflict |
+| Second user's view | Full history and every branch visible to a user who joined afterwards |
+| Live notification | A commit by one user updates the other user's Git panel in real time |
+| Per-user branches | Two users sitting on different branches of one room simultaneously (§10.4) |
+| Remote URL validation | A non-`https://` remote is rejected with a readable message |
+| Push with no remote | Fails cleanly with "No remote configured", and the room stays connected |
+
+That last row is the one worth calling out: the interesting question for an error path is not whether it produces an error, but whether the socket survives it. A handler that throws past its `try`/`catch` takes the connection down and turns a recoverable mistake into a lost editing session, so "still connected afterwards" is asserted explicitly.
+
 ---
 
 ## 11. Horizontal scalability, end to end
@@ -501,7 +556,7 @@ Four layers, each proving something the layer below it structurally cannot:
 | Unit | Jest (`executionService.test.js`, `semaphore.test.js`) | Individual functions behave correctly in isolation, with dependencies mocked (`getRunner` mocked in `executionService.test.js` so the test is fast and doesn't need Docker) |
 | Integration | Jest + `mongodb-memory-server` + real Redis + real sockets (`auth.test.js`, `rooms.test.js`, `sockets.test.js`, `admin.test.js`, `pythonRunner.docker.test.js`, `gitService.test.js`, `gitSockets.test.js`) | Real HTTP requests through the real Express app, real Socket.IO connections through the real handler chain, a real Docker container (`pythonRunner.docker.test.js`), and a real on-disk git repository (`gitService.test.js`, `gitSockets.test.js`) — no mocks anywhere in this layer. This is what caught the collab bugs in §6.4/§6.5/§6.7/§6.8, the sandbox stdin bug in §7.3, and all three git bugs in §10.3: none were visible from unit tests with mocked boundaries. `admin.test.js` boots the socket server with `useRedisAdapter: true` specifically (most other integration tests use `false` for speed) to verify `fetchSockets()`/`socket.data` behave correctly on the real code path production actually runs (§16.2). |
 | Cross-instance regression | Jest + `child_process.fork` (`collabSync.test.js`, via `multiInstance.js`) | The specific failure mode that only exists across *genuinely separate* processes — see §6.5 for why an in-process simulation would have missed it entirely. |
-| End-to-end (real browser) | Playwright, Chromium (`e2e/`, 17 specs across 11 files) | The thing none of the layers above can: that the actual UI, driven the way a real user drives it (typing into Monaco, clicking Run, reading rendered chat messages, granting a fake camera/mic), produces correct results through the *whole* stack — client bundle, real network round-trips, real DOM, real `RTCPeerConnection` negotiation (§8.3). There's no interactive browser tool in this environment, so this is how "test it in a browser" happens here: a real headless Chromium against the real client dev server and real backend, not a simulation of either. |
+| End-to-end (real browser) | Playwright, Chromium (`e2e/`, 22 specs across 12 files) | The thing none of the layers above can: that the actual UI, driven the way a real user drives it (typing into Monaco, clicking Run, reading rendered chat messages, granting a fake camera/mic), produces correct results through the *whole* stack — client bundle, real network round-trips, real DOM, real `RTCPeerConnection` negotiation (§8.3). There's no interactive browser tool in this environment, so this is how "test it in a browser" happens here: a real headless Chromium against the real client dev server and real backend, not a simulation of either. |
 | Load/stress | k6 (Docker image) + custom Node harnesses (`load-tests/`) | Behavior *under concurrency and sustained load* — correctness tests all pass with 1 request at a time; load tests are what surfaced the bcrypt latency bug (§6.5... see §13) that no functional test could have found, because every functional assertion about that code was already true, just slow. |
 
 ### 12.1 What the e2e layer found
