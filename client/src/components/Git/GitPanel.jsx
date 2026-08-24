@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { emitAck } from '../../lib/socket';
 
-export function GitPanel({ socket, roomId, currentBranch, onSwitchBranch }) {
-  const [tab, setTab] = useState('commit');
+export function GitPanel({ socket, roomId, currentBranch, onSwitchBranch, tab, setTab }) {
   const [branches, setBranches] = useState({ all: [] });
   const [log, setLog] = useState([]);
   const [message, setMessage] = useState('');

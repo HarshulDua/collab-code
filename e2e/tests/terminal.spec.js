@@ -168,3 +168,40 @@ test('a file created in the terminal reaches a second user in real time', async 
     await ctxB.close();
   }
 });
+
+// Regression: the terminal used to be a sidebar tab, so looking at Chat or Git
+// unmounted it and silently threw away the whole scrollback. It now lives in
+// the bottom panel and both bottom panes stay mounted, so nothing that changes
+// which panel you are looking at can lose terminal history.
+test('terminal scrollback survives switching panels and tabs', async ({ page }) => {
+  test.setTimeout(60000);
+
+  await registerAndGoToRooms(page, 'TermKeep');
+  await createRoom(page, 'Terminal Persistence Room');
+  await waitForEditorReady(page);
+  await openTerminal(page);
+
+  await runCmd(page, 'echo remember_this_line');
+  await runCmd(page, 'pwd');
+  expect(await terminalText(page)).toContain('remember_this_line');
+
+  // Output tab and back.
+  await page.getByRole('button', { name: 'Output', exact: true }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Terminal', exact: true }).click();
+  expect(await terminalText(page)).toContain('remember_this_line');
+
+  // Git panel and back to Explorer.
+  await page.getByRole('button', { name: 'Git', exact: true }).click();
+  await page.waitForTimeout(300);
+  expect(await terminalText(page)).toContain('remember_this_line');
+  await page.getByRole('button', { name: 'Explorer', exact: true }).click();
+  await page.waitForTimeout(300);
+  expect(await terminalText(page)).toContain('remember_this_line');
+
+  // Still usable, and command history is intact too.
+  await runCmd(page, 'echo second_line');
+  const finalText = await terminalText(page);
+  expect(finalText).toContain('remember_this_line');
+  expect(finalText).toContain('second_line');
+});

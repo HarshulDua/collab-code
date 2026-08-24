@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { languageForPath, isRunnable } from '../../lib/languages';
 
-export function ExecutionPanel({ socket, roomId, branch, filesMap, activeFile }) {
+/**
+ * Run state for the active file. Split out from the rendering so the Run
+ * controls can sit permanently in the bottom panel's tab row while the output
+ * lives inside the (switchable) Output pane — one source of state, two places
+ * it surfaces.
+ */
+export function useExecution({ socket, roomId, branch, filesMap, activeFile }) {
   const [running, setRunning] = useState(false);
   const [runBy, setRunBy] = useState(null);
   const [result, setResult] = useState(null);
@@ -58,16 +64,40 @@ export function ExecutionPanel({ socket, roomId, branch, filesMap, activeFile })
     );
   }
 
+  return { running, runBy, result, error, stdin, setStdin, showStdin, setShowStdin, run, runnable, activeFile };
+}
+
+/** Run + stdin buttons. Always visible, whichever bottom tab is open. */
+export function ExecutionControls({ exec, onActivate }) {
+  return (
+    <span className="execution-toolbar">
+      <button
+        onClick={() => {
+          onActivate?.();
+          exec.run();
+        }}
+        disabled={exec.running || !exec.runnable}
+      >
+        {exec.running ? `Running (${exec.runBy})…` : `Run ${exec.activeFile}`}
+      </button>
+      <button
+        className="execution-stdin-toggle"
+        onClick={() => {
+          onActivate?.();
+          exec.setShowStdin((v) => !v);
+        }}
+      >
+        stdin {exec.showStdin ? '▲' : '▼'}
+      </button>
+    </span>
+  );
+}
+
+/** Stdin box and the run's output. Lives in the Output pane. */
+export function ExecutionOutput({ exec }) {
+  const { result, error, showStdin, stdin, setStdin } = exec;
   return (
     <div className="execution-panel">
-      <div className="execution-toolbar">
-        <button onClick={run} disabled={running || !runnable}>
-          {running ? `Running (${runBy})…` : `Run ${activeFile}`}
-        </button>
-        <button className="execution-stdin-toggle" onClick={() => setShowStdin((v) => !v)}>
-          stdin {showStdin ? '▲' : '▼'}
-        </button>
-      </div>
       {showStdin && (
         <textarea
           className="execution-stdin"

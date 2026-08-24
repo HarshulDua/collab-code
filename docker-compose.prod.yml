@@ -30,6 +30,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       GIT_TOKEN_ENCRYPTION_KEY: ${GIT_TOKEN_ENCRYPTION_KEY}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       SANDBOX_IMAGE: collab-sandbox:latest
       EXEC_HOST_TMP_DIR: ${EXEC_HOST_TMP_DIR:-/tmp/collab-exec-shared}
     volumes:
@@ -45,6 +46,7 @@ services:
         VITE_TURN_URL: ${VITE_TURN_URL:-}
         VITE_TURN_USERNAME: ${VITE_TURN_USERNAME:-}
         VITE_TURN_CREDENTIAL: ${VITE_TURN_CREDENTIAL:-}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     container_name: collab-client-prod
     depends_on:
       - server

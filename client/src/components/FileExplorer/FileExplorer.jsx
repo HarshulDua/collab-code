@@ -4,7 +4,7 @@ import { buildTree, createFile, deleteFile, renameFile } from '../../lib/fileTre
 import { PresenceList } from '../Presence/PresenceList';
 import { useAwarenessStates } from '../../hooks/useAwarenessStates';
 
-export function FileExplorer({ filesMap, activeFile, onSelectFile, awareness, style }) {
+export function FileExplorer({ filesMap, activeFile, onSelectFile, awareness }) {
   const paths = useFileList(filesMap);
   const [error, setError] = useState(null);
   const tree = buildTree(paths);
@@ -59,10 +59,10 @@ export function FileExplorer({ filesMap, activeFile, onSelectFile, awareness, st
   }
 
   return (
-    <div className="file-explorer" style={style}>
+    <div className="file-explorer">
       <div className="file-explorer-header">
-        <span>Files</span>
-        <button onClick={handleNewFile} title="New file">
+        <span>Explorer</span>
+        <button onClick={handleNewFile} title="New file" aria-label="+">
           +
         </button>
       </div>

@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { AuthShell } from '../components/ui/AuthShell';
+import { GoogleButton } from '../components/ui/GoogleButton';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -20,27 +22,66 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="auth-page">
-      <form className="auth-form" onSubmit={onSubmit}>
-        <h1>Register</h1>
-        {error && <p className="error-text">{error}</p>}
-        <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+    <AuthShell
+      heading="Start collaborating"
+      subheading="Create an account to open your first room"
+      altPrompt="Already have an account?"
+      altLabel="Log in"
+      altTo="/login"
+    >
+      <h2>Create your account</h2>
+      {error && <p className="error-text">{error}</p>}
+
+      <form onSubmit={onSubmit}>
+        <label className="field-label" htmlFor="register-name">
+          Name
+        </label>
         <input
+          id="register-name"
+          placeholder="Name"
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+
+        <label className="field-label" htmlFor="register-email">
+          Email
+        </label>
+        <input
+          id="register-email"
+          type="email"
+          placeholder="Email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+
+        <label className="field-label" htmlFor="register-password">
+          Password
+        </label>
+        <input
+          id="register-password"
           type="password"
           placeholder="Password (min 8 characters)"
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           minLength={8}
           required
         />
-        <button type="submit" disabled={submitting}>
+
+        <button className="btn-primary btn-block" type="submit" disabled={submitting}>
           {submitting ? 'Creating account…' : 'Register'}
         </button>
-        <p>
-          Already have an account? <Link to="/login">Log in</Link>
-        </p>
       </form>
-    </div>
+
+      <div className="or-rule">
+        <span>or</span>
+      </div>
+
+      <GoogleButton label="Continue with Google" onDone={() => navigate('/rooms')} />
+    </AuthShell>
   );
 }

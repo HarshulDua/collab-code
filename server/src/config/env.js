@@ -37,6 +37,10 @@ const env = {
 
   adminEmail: process.env.ADMIN_EMAIL || null,
   authRateLimitPerMin: parseInt(process.env.AUTH_RATE_LIMIT_PER_MIN || '30', 10),
+
+  // Unset simply means Google sign-in is switched off — the endpoint refuses
+  // rather than trusting an unverifiable token.
+  googleClientId: process.env.GOOGLE_CLIENT_ID || null,
 };
 
 function assertProductionReady() {

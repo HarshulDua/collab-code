@@ -21,9 +21,18 @@ cd client && npm install && npm run dev                                       # 
 
 Open two browser tabs, register two different accounts, create a room in one and join it by ID in the other.
 
+## Google sign-in (optional)
+
+Create an OAuth 2.0 **Web application** client in the Google Cloud console, add your
+origin (e.g. `http://localhost:5173`) to its *Authorised JavaScript origins*, then set
+the same client ID in both `server/.env` (`GOOGLE_CLIENT_ID`) and `client/.env`
+(`VITE_GOOGLE_CLIENT_ID`) — the server verifies tokens against it and Vite bakes it into
+the bundle at build time. Leave both unset and the "Continue with Google" button simply
+renders disabled; email/password sign-in is unaffected.
+
 ## The in-room terminal
 
-The **Terminal** tab in a room's sidebar is a whitelisted command interpreter, not a shell — every command maps onto a service that already has its own safety model (see [ARCHITECTURE.md §9A](./ARCHITECTURE.md)). Type `help` for the full list.
+The **Terminal** tab in a room's bottom panel is a whitelisted command interpreter, not a shell — every command maps onto a service that already has its own safety model (see [ARCHITECTURE.md §9A](./ARCHITECTURE.md)). Type `help` for the full list.
 
 ```
 ls  cd  pwd  cat  touch  mkdir  rm [-r]  mv  cp  echo [> >>]

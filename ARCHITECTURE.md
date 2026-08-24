@@ -165,6 +165,22 @@ All four schemas use Mongoose's `{ timestamps: true }` for free `createdAt`/`upd
 
 **Threat model, honestly**: a JWT is a bearer token — anyone holding it is treated as that user for its full 7-day life, and there's no server-side revocation list, so a leaked token stays valid until it expires (this is the standard JWT tradeoff, not unique to this project). No refresh-token rotation exists — see §14 known limitations.
 
+### 5.1 Google sign-in
+
+`POST /api/auth/google` accepts the ID token Google's client library produces and exchanges it for this application's own JWT, so everything downstream — REST, the socket handshake, room membership — keeps working through exactly one mechanism. Google is an identity provider here, not a session mechanism.
+
+**The verification is the whole feature.** An ID token is only meaningful if you check who it was issued *to*. `verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID })` validates the signature against Google's rotating public keys, the issuer, the expiry, **and** the audience. Skipping that last field is the classic mistake: without it, a valid Google token minted for *any other application* would be accepted here, which turns "sign in with Google" into "sign in as anyone, using a token borrowed from an unrelated site". The test suite asserts the audience is passed, not just that verification happens.
+
+Three further rules, each with a test:
+
+- **`email_verified` is required.** Google will issue a token for an unverified address; treating one as proof of ownership would let someone claim an account at an email they don't control.
+- **Accounts link rather than duplicate.** Signing in with Google using an address that already has a password account attaches `googleId` to that user instead of creating a second row for the same person. The existing password keeps working — linking must never lock someone out of the credential they already had.
+- **A Google-created account has `passwordHash: null`, not `''`.** An empty string is a real bcrypt input, and comparing a guess against it is a silent security hole; null makes the "this account has no password" branch explicit. Password login against such an account says so plainly rather than returning "invalid credentials" for a password that never existed — the one place where being vague about *why* login failed helps nobody, since the account's existence is not the secret.
+
+The client uses Google's own rendered button. That isn't a styling preference: the credential flow only issues an ID token through Google's button or One Tap, so a hand-drawn button matching the mockup exactly could not actually produce a token. Where the client ID is unset the button still renders — disabled, with the reason in its tooltip — because a missing environment variable should degrade one control, not blank out part of the form.
+
+`GOOGLE_CLIENT_ID` is needed in two places for one value: the server verifies against it, and Vite bakes `VITE_GOOGLE_CLIENT_ID` into the bundle at *build* time, so `docker-compose.prod.yml` passes the same variable as both a runtime env var and a client build arg.
+
 ---
 
 ## 6. Real-time collaboration — the CRDT deep dive
@@ -410,6 +426,28 @@ client/src/
 
 ---
 
+### 9.1 The workspace layout, and the state that must live above it
+
+The room is laid out the way an IDE is: an activity rail (Explorer / Source control), a resizable side panel, the editor with its own tab strip, a bottom panel holding Terminal and Output, and chat down the right — with the video call hanging off the participant avatars in the header rather than occupying permanent space.
+
+Two consequences of that layout are worth recording, because both were bugs before they were decisions.
+
+**Panes that hold state must not be conditionally rendered.** The terminal was originally a sidebar tab alongside Chat and Git, so looking at either of those unmounted it and silently destroyed the entire scrollback — a reported bug, and an unusually annoying one because the work lost was a session's worth of typed commands. Both bottom panes are now always mounted and the inactive one is hidden with CSS. React conditional rendering is not a visibility mechanism; for anything holding unsaved state it is a delete.
+
+**The same rule applies to the video call, for a different reason.** The popover keeps `VideoCallPanel` mounted whether or not it is open, and hides it with `opacity`/`pointer-events` rather than `display: none`. Unmounting would tear down every `RTCPeerConnection` and force a fresh offer/answer round trip each time someone peeked at the call; `display: none` stops the browser decoding frames at all, so reopening would show a frozen tile until the next keyframe.
+
+**State whose lifetime is longer than the component tree below it has to be lifted.** `BranchWorkspace` is keyed on the branch (`key={currentBranch}`), which is what makes switching branches a clean remount onto an independent document (§10.4). That remount also resets anything held *inside* it — so the activity rail selection, the bottom tab, and the Git panel's own sub-tab all snapped back to their defaults on every branch switch, throwing you out of the panel you were working in. All three now live in `RoomPage`, above the key boundary. The rule that falls out: state describing *what the user is looking at* belongs above a remount boundary; state describing *what they are looking at it with* (the Y.Doc, the provider, the awareness) belongs below it.
+
+The one thing still deliberately below the boundary is the terminal's scrollback, which resets when you change branch. That is the honest behaviour — the prompt, the working directory and every file command are branch-scoped, so carrying one branch's session into another would be misleading rather than helpful.
+
+### 9.2 Avatars
+
+A person's avatar is their Google profile picture when the account has one, and their initials on a colour derived from their identity otherwise — the same golden-angle hash used for cursor colours (§6.10), so one person is one colour everywhere in the UI. Google's CDN 403s a request carrying a referrer from an origin it didn't issue the token to, so the `<img>` sets `referrerPolicy="no-referrer"`.
+
+One accessibility detail that turned into a real bug: the avatars inside the participant button each carry an `aria-label` with their owner's name, and an element's accessible name is computed from its contents unless you override it. The header button was therefore named after whoever happened to be in the room — so a room containing a "Sender" made `getByRole('button', { name: 'Send' })` ambiguous with the chat's send button. An explicit `aria-label` on the button fixes both the ambiguity and the screen-reader experience: the control's purpose is "video call", not a recitation of the guest list.
+
+---
+
 ## 9A. The terminal — a whitelisted interpreter, deliberately not a shell
 
 `server/src/services/terminalService.js` gives each room a command line covering file management, code execution, and git. The single most important design decision is what it *isn't*.
@@ -556,7 +594,7 @@ Four layers, each proving something the layer below it structurally cannot:
 | Unit | Jest (`executionService.test.js`, `semaphore.test.js`) | Individual functions behave correctly in isolation, with dependencies mocked (`getRunner` mocked in `executionService.test.js` so the test is fast and doesn't need Docker) |
 | Integration | Jest + `mongodb-memory-server` + real Redis + real sockets (`auth.test.js`, `rooms.test.js`, `sockets.test.js`, `admin.test.js`, `pythonRunner.docker.test.js`, `gitService.test.js`, `gitSockets.test.js`) | Real HTTP requests through the real Express app, real Socket.IO connections through the real handler chain, a real Docker container (`pythonRunner.docker.test.js`), and a real on-disk git repository (`gitService.test.js`, `gitSockets.test.js`) — no mocks anywhere in this layer. This is what caught the collab bugs in §6.4/§6.5/§6.7/§6.8, the sandbox stdin bug in §7.3, and all three git bugs in §10.3: none were visible from unit tests with mocked boundaries. `admin.test.js` boots the socket server with `useRedisAdapter: true` specifically (most other integration tests use `false` for speed) to verify `fetchSockets()`/`socket.data` behave correctly on the real code path production actually runs (§16.2). |
 | Cross-instance regression | Jest + `child_process.fork` (`collabSync.test.js`, via `multiInstance.js`) | The specific failure mode that only exists across *genuinely separate* processes — see §6.5 for why an in-process simulation would have missed it entirely. |
-| End-to-end (real browser) | Playwright, Chromium (`e2e/`, 22 specs across 12 files) | The thing none of the layers above can: that the actual UI, driven the way a real user drives it (typing into Monaco, clicking Run, reading rendered chat messages, granting a fake camera/mic), produces correct results through the *whole* stack — client bundle, real network round-trips, real DOM, real `RTCPeerConnection` negotiation (§8.3). There's no interactive browser tool in this environment, so this is how "test it in a browser" happens here: a real headless Chromium against the real client dev server and real backend, not a simulation of either. |
+| End-to-end (real browser) | Playwright, Chromium (`e2e/`, 23 specs across 12 files) | The thing none of the layers above can: that the actual UI, driven the way a real user drives it (typing into Monaco, clicking Run, reading rendered chat messages, granting a fake camera/mic), produces correct results through the *whole* stack — client bundle, real network round-trips, real DOM, real `RTCPeerConnection` negotiation (§8.3). There's no interactive browser tool in this environment, so this is how "test it in a browser" happens here: a real headless Chromium against the real client dev server and real backend, not a simulation of either. |
 | Load/stress | k6 (Docker image) + custom Node harnesses (`load-tests/`) | Behavior *under concurrency and sustained load* — correctness tests all pass with 1 request at a time; load tests are what surfaced the bcrypt latency bug (§6.5... see §13) that no functional test could have found, because every functional assertion about that code was already true, just slow. |
 
 ### 12.1 What the e2e layer found

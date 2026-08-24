@@ -47,6 +47,19 @@ export const useAuthStore = create((set) => ({
     }
   },
 
+  async loginWithGoogle(credential) {
+    set({ error: null });
+    try {
+      const { token, user } = await apiClient.loginWithGoogle(credential);
+      persist(token, user);
+      set({ token, user });
+      return true;
+    } catch (err) {
+      set({ error: err.message });
+      return false;
+    }
+  },
+
   logout() {
     persist(null, null);
     set({ token: null, user: null });

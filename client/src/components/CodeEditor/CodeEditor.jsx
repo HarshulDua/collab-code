@@ -80,10 +80,19 @@ export function CodeEditor({ filesMap, activeFile, awareness }) {
   return (
     <div className="code-editor">
       <Editor
-        height="60vh"
+        height="100%"
         theme="vs-dark"
         onMount={handleMount}
-        options={{ minimap: { enabled: false }, fontSize: 14 }}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 13,
+          lineHeight: 20,
+          scrollBeyondLastLine: false,
+          smoothScrolling: true,
+          padding: { top: 10 },
+          renderLineHighlight: 'line',
+          automaticLayout: true,
+        }}
       />
     </div>
   );

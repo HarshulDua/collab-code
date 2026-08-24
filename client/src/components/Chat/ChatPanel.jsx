@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../../lib/apiClient';
+import { Avatar } from '../ui/Avatar';
+import { SendIcon } from '../ui/Icons';
+
+function timeOf(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
 
 export function ChatPanel({ socket, roomId, token }) {
   const [messages, setMessages] = useState([]);
@@ -54,14 +63,22 @@ export function ChatPanel({ socket, roomId, token }) {
   return (
     <div className="chat-panel">
       <div className="chat-messages">
+        {messages.length === 0 && ready && <p className="chat-empty muted">No messages yet — say hello.</p>}
         {messages.map((m) => (
           <div key={m.id} className="chat-message">
-            <span className="chat-author">{m.authorName}</span>
-            <span className="chat-text">{m.text}</span>
+            <Avatar user={{ id: m.author, name: m.authorName }} size={26} />
+            <div className="chat-message-body">
+              <div className="chat-message-head">
+                <span className="chat-author">{m.authorName}</span>
+                <span className="chat-time">{timeOf(m.createdAt)}</span>
+              </div>
+              <div className="chat-text">{m.text}</div>
+            </div>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
+
       <form className="chat-input" onSubmit={send}>
         <input
           value={text}
@@ -69,8 +86,8 @@ export function ChatPanel({ socket, roomId, token }) {
           placeholder={ready ? 'Message the room…' : 'Joining chat…'}
           disabled={!ready}
         />
-        <button type="submit" disabled={!ready}>
-          Send
+        <button type="submit" disabled={!ready} aria-label="Send" title="Send">
+          <SendIcon />
         </button>
       </form>
     </div>
