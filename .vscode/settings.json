@@ -1,0 +1,16 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": [
+    { "directory": "server", "changeProcessCWD": true },
+    { "directory": "client", "changeProcessCWD": true },
+    { "directory": "e2e", "changeProcessCWD": true },
+    { "directory": "load-tests", "changeProcessCWD": true }
+  ],
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true
+}

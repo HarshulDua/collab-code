@@ -31,6 +31,10 @@ jobs:
         working-directory: server
         run: npm ci
 
+      - name: Lint server
+        working-directory: server
+        run: npm run lint
+
       - name: Build execution sandbox image
         run: docker build -t collab-sandbox:latest -f docker/sandbox.Dockerfile docker/
 
@@ -56,6 +60,10 @@ jobs:
       - name: Install client dependencies
         working-directory: client
         run: npm ci
+
+      - name: Lint client
+        working-directory: client
+        run: npm run lint
 
       - name: Build client
         working-directory: client
