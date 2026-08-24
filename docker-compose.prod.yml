@@ -2,18 +2,21 @@ services:
   mongo:
     image: mongo:7
     container_name: collab-mongo-prod
+    restart: unless-stopped
     volumes:
       - mongo-data-prod:/data/db
 
   redis:
     image: redis:7-alpine
     container_name: collab-redis-prod
+    restart: unless-stopped
     volumes:
       - redis-data-prod:/data
 
   server:
     build: ./server
     container_name: collab-server-prod
+    restart: unless-stopped
     depends_on:
       - mongo
       - redis
@@ -48,6 +51,7 @@ services:
         VITE_TURN_CREDENTIAL: ${VITE_TURN_CREDENTIAL:-}
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     container_name: collab-client-prod
+    restart: unless-stopped
     depends_on:
       - server
     ports:

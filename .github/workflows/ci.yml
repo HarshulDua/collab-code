@@ -91,9 +91,38 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
+            set -e
             cd /opt/collab-code
             git fetch origin main
+            PREV=$(git rev-parse HEAD)
             git reset --hard origin/main
-            docker build -t collab-sandbox:latest -f docker/sandbox.Dockerfile docker/
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build server client mongo redis
+
+            # Reclaim first. The box is a t3.small with a 20GB disk and the
+            # sandbox image alone is ~2.4GB — a deploy that starts with the
+            # disk nearly full wedges the whole instance (sshd included), which
+            # is exactly how this once took production down.
+            docker container prune -f
             docker image prune -f
+            docker builder prune -af --filter until=24h
+            df -h / | tail -1
+
+            # The sandbox image only changes when its Dockerfile does, and
+            # rebuilding 2.4GB on every push is most of the memory and disk
+            # pressure. Rebuild it only when it actually changed, or when it
+            # is missing entirely.
+            if ! docker image inspect collab-sandbox:latest >/dev/null 2>&1 \
+               || ! git diff --quiet "$PREV" HEAD -- docker/sandbox.Dockerfile; then
+              echo "sandbox image: rebuilding"
+              docker build -t collab-sandbox:latest -f docker/sandbox.Dockerfile docker/
+            else
+              echo "sandbox image: unchanged, skipping rebuild"
+            fi
+
+            # Built one at a time: two concurrent Node builds do not fit in
+            # 2GB of RAM alongside the running stack.
+            docker compose -f docker-compose.prod.yml --env-file .env.prod build server
+            docker compose -f docker-compose.prod.yml --env-file .env.prod build client
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d server client mongo redis
+
+            docker image prune -f
+            df -h / | tail -1

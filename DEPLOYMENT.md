@@ -113,13 +113,42 @@ never have actually updated what a real visitor sees. See
 
 Push any commit to `main` → the `CI` workflow (`.github/workflows/ci.yml`)
 runs the server and client test jobs first, then — only on `main`, only if
-both pass — its `deploy` job SSHes into EC2, rebuilds the sandbox image,
-and brings up `server`, `client`, `mongo`, `redis` together via
-`docker compose ... up -d --build`, so both halves of the app always
-redeploy in the same step and never drift out of sync with each other.
-Check the Actions tab on GitHub for the run.
+both pass — its `deploy` job SSHes into EC2, reclaims disk, rebuilds the
+sandbox image *only if its Dockerfile changed*, builds the server and client
+images one at a time, and brings the whole stack up. Both halves of the app
+always redeploy in the same step and never drift out of sync with each other.
+The sequencing is deliberate, not incidental — see step 5. Check the Actions
+tab on GitHub for the run.
 
-## 5. Confirm the admin dashboard works in production
+## 5. Capacity — the thing that will bite you
+
+The instance this runs on is a `t3.small`: 2 vCPU, 2 GB RAM, 20 GB disk. The
+nine-language sandbox image is ~2.4 GB on its own, and a deploy builds the
+server and client images on top of that. Two failure modes follow, and both
+have actually happened:
+
+- **Disk exhaustion wedges the whole instance.** At 100% the OS cannot write,
+  which takes down `sshd` as well as Docker — you lose the box *and* your way
+  back into it, and the only recovery is an EC2 reboot from the AWS console or
+  CLI. Watch `df -h /`; anything above ~80% before a deploy is a warning.
+- **Two concurrent Node builds do not fit in 2 GB.** The deploy therefore
+  builds the images one at a time and skips the sandbox rebuild unless
+  `docker/sandbox.Dockerfile` actually changed.
+
+If you want headroom rather than care, grow the root volume (20 GB → 40 GB is
+plenty) and extend the filesystem:
+
+```
+aws ec2 modify-volume --volume-id <vol-id> --size 40
+# then, on the instance:
+sudo growpart /dev/nvme0n1 1 && sudo resize2fs /dev/nvme0n1p1
+```
+
+Every service also carries `restart: unless-stopped`, so a reboot or a crash
+brings the stack back on its own — without it the instance comes up with
+nothing running and the site stays down until somebody SSHes in.
+
+## 6. Confirm the admin dashboard works in production
 
 Register/log in on the deployed app using the exact email set as
 `ADMIN_EMAIL` in `.env.prod`, then visit `/admin` — you should see the real
